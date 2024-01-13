@@ -3,8 +3,8 @@ import express, { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
-
 dotenv.config();
+
 const app = express();
 app.use(express.json());
 
