@@ -14,6 +14,7 @@ app.get("/sections", async (req: Request, res: Response) => {
   res.json(sections);
 });
 
+// Get section by ID. Example: /section?sectionID=1
 app.get("/section", async (req: Request, res: Response) => {
   const sectionID = parseInt(req.query.sectionID as string);
 
@@ -81,6 +82,7 @@ app.get("/edges", async (req: Request, res: Response) => {
   res.json(edges);
 });
 
+// Get edge by ID. Example: /edge?edgeID=1
 app.get("/edge", async (req: Request, res: Response) => {
   const edgeID = parseInt(req.query.edgeID as string);
 
