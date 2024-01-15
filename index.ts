@@ -1,6 +1,7 @@
 import * as dotenv from "dotenv";
 import express, { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
+import path from "path";
 
 const prisma = new PrismaClient();
 dotenv.config();
@@ -8,8 +9,11 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
+// Add this to server static files. This will allows for a landing page.
+app.use(express.static("public"));
+
 app.get("/", (req: Request, res: Response) => {
-  res.status(200).json({ message: "gcuMaps Capstone" });
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 // Sections
@@ -111,6 +115,11 @@ app.get("/edge", async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).send("An error occurred while fetching the edge: " + error);
   }
+});
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
 
 export default app;
