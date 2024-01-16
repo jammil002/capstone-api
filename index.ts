@@ -13,7 +13,7 @@ app.use(express.json());
 app.use(express.static("public"));
 
 app.get("/", (req: Request, res: Response) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.sendFile("index.html", { root: path.join(__dirname, "public") });
 });
 
 // Sections
