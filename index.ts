@@ -1,13 +1,23 @@
 import * as dotenv from "dotenv";
 import express, { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
+import helmet from "helmet";
+import { rateLimit } from "express-rate-limit";
 import path from "path";
 
 const prisma = new PrismaClient();
 dotenv.config();
-
 const app = express();
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 100,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+});
+
 app.use(express.json());
+app.use(helmet());
+app.use(limiter);
 
 // Add this to server static files. This will allows for a landing page.
 app.use(express.static("public"));
