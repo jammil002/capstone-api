@@ -26,6 +26,14 @@ app.get("/", (req: Request, res: Response) => {
   res.sendFile("index.html", { root: path.join(__dirname, "public") });
 });
 
+app.get("/api", async (req: Request, res: Response) => {
+  res.json("gcuMaps API");
+});
+
+app.get("/api/", async (req: Request, res: Response) => {
+  res.json("gcuMaps API");
+});
+
 // Sections
 app.get("/sections", async (req: Request, res: Response) => {
   const sections = await prisma.section.findMany();
