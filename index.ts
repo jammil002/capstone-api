@@ -1,4 +1,5 @@
 import * as dotenv from "dotenv";
+import CORS from "cors";
 import express, { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import helmet from "helmet";
@@ -16,14 +17,77 @@ const limiter = rateLimit({
 });
 
 app.use(express.json());
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+  })
+);
+app.use(CORS());
 app.use(limiter);
+
+function getDistance(latitude1, longitude1, latitude2, longitude2) {
+  const earthRadiusMiles = 3958.8; // Radius of the Earth in miles
+  const deltaLatitudeRadians = degreesToRadians(latitude2 - latitude1);
+  const deltaLongitudeRadians = degreesToRadians(longitude2 - longitude1);
+
+  const a =
+    Math.sin(deltaLatitudeRadians / 2) * Math.sin(deltaLatitudeRadians / 2) +
+    Math.cos(degreesToRadians(latitude1)) *
+      Math.cos(degreesToRadians(latitude2)) *
+      Math.sin(deltaLongitudeRadians / 2) *
+      Math.sin(deltaLongitudeRadians / 2);
+
+  const centralAngleRadians = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distance = earthRadiusMiles * centralAngleRadians; // Distance in miles
+
+  return distance;
+}
+
+function degreesToRadians(degrees) {
+  return degrees * (Math.PI / 180);
+}
 
 // Add this to server static files. This will allows for a landing page.
 app.use(express.static("public"));
 
 app.get("/", (req: Request, res: Response) => {
   res.sendFile("index.html", { root: path.join(__dirname, "public") });
+});
+
+app.get("/edgepost", (req: Request, res: Response) => {
+  res.sendFile("edgepost.html", { root: path.join(__dirname, "public") });
+});
+
+app.post("/calculateEdge", async (req: Request, res: Response) => {
+  const { startingNode, endingNodes } = req.body;
+
+  if (!startingNode || !endingNodes) {
+    return res.status(400).send("Invalid node input.");
+  }
+
+  try {
+    for (const endingNode of endingNodes) {
+      const distance = getDistance(
+        parseFloat(startingNode.Latitude),
+        parseFloat(startingNode.Longitude),
+        parseFloat(endingNode.Latitude),
+        parseFloat(endingNode.Longitude)
+      );
+
+      await prisma.edges.create({
+        data: {
+          StartNodeID: startingNode.NodeID,
+          EndNodeID: endingNode.NodeID,
+          Distance: distance,
+          Description: startingNode.Name + " to " + endingNode.Name,
+        },
+      });
+
+      res.status(200).send("Distances calculated and stored successfully");
+    }
+  } catch (error) {
+    res.status(400).send("Error: " + error.message);
+  }
 });
 
 // Sections
