@@ -65,6 +65,8 @@ app.post("/calculateEdge", async (req: Request, res: Response) => {
     return res.status(400).send("Invalid node input.");
   }
 
+  const edgeData = [];
+
   try {
     for (const endingNode of endingNodes) {
       const distance = getDistance(
@@ -74,17 +76,23 @@ app.post("/calculateEdge", async (req: Request, res: Response) => {
         parseFloat(endingNode.Longitude)
       );
 
-      await prisma.edges.create({
-        data: {
-          StartNodeID: startingNode.NodeID,
-          EndNodeID: endingNode.NodeID,
-          Distance: distance,
-          Description: startingNode.Name + " to " + endingNode.Name,
-        },
+      edgeData.push({
+        StartNodeID: startingNode.NodeID,
+        EndNodeID: endingNode.NodeID,
+        Distance: distance,
+        Description: startingNode.Name + " to " + endingNode.Name,
       });
-
-      res.status(200).send("Distances calculated and stored successfully");
     }
+
+    console.log(edgeData);
+
+    // Bulk insert
+    await prisma.edges.createMany({
+      data: edgeData,
+      skipDuplicates: true, // Optional: skip duplicates if needed
+    });
+
+    res.status(200).send("Distances calculated and stored successfully");
   } catch (error) {
     res.status(400).send("Error: " + error.message);
   }
