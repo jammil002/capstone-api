@@ -118,14 +118,14 @@ app.get("/section", async (req: Request, res: Response) => {
   }
 
   try {
-    const node = await prisma.section.findUnique({
+    const section = await prisma.section.findUnique({
       where: {
         SectionID: sectionID,
       },
     });
 
-    if (node) {
-      res.json(node);
+    if (section) {
+      res.json(section);
     } else {
       console.log("Section not found");
       res.status(404).send("Section not found");
@@ -151,8 +151,8 @@ app.post("/defineAdjacent", async (req: Request, res: Response) => {
   try {
     const adjacentSection = await prisma.adjacentSections.create({
       data: {
-        SectionID1: section1,
-        SectionID2: section2,
+        SectionID1: parseInt(section1),
+        SectionID2: parseInt(section2),
       },
     });
     res.status(200).json(adjacentSection);
@@ -160,6 +160,11 @@ app.post("/defineAdjacent", async (req: Request, res: Response) => {
     console.error("Error inserting adjacent sections:", error);
     res.status(500).send("Failed to define adjacent sections.");
   }
+});
+
+app.get("/adjacentSections", async (req: Request, res: Response) => {
+  const adjacentSections = await prisma.adjacentSections.findMany();
+  res.json(adjacentSections);
 });
 
 // Nodes
@@ -229,6 +234,19 @@ app.get("/edge", async (req: Request, res: Response) => {
 });
 
 // Pathfinding
+app.get("/navigate", async (req: Request, res: Response) => {
+  const { startId, goalId } = req.body;
+
+  if (typeof startId !== "number" || typeof goalId !== "number") {
+    return res
+      .status(400)
+      .send("Start and goal nodes are required and must be numbers.");
+  }
+});
+
+app.get("/testNavigate", async (req: Request, res: Response) => {
+  res.sendFile("testnavigate.html", { root: path.join(__dirname, "public") });
+});
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
