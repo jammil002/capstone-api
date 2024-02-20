@@ -99,6 +99,10 @@ app.post("/calculateEdge", async (req: Request, res: Response) => {
 });
 
 // Sections
+app.get("/sectionpost", (req: Request, res: Response) => {
+  res.sendFile("sectionpost.html", { root: path.join(__dirname, "public") });
+});
+
 app.get("/sections", async (req: Request, res: Response) => {
   const sections = await prisma.section.findMany();
   res.json(sections);
@@ -130,6 +134,31 @@ app.get("/section", async (req: Request, res: Response) => {
     res
       .status(500)
       .send("An error occurred while fetching the section: " + error);
+  }
+});
+
+app.post("/defineAdjacent", async (req: Request, res: Response) => {
+  const { section1, section2 } = req.body;
+
+  if (!section1 || !section2) {
+    return res.status(400).send("Both section IDs are required.");
+  }
+
+  if (section1 === section2) {
+    return res.status(400).send("A section cannot be adjacent to itself.");
+  }
+
+  try {
+    const adjacentSection = await prisma.adjacentSections.create({
+      data: {
+        SectionID1: section1,
+        SectionID2: section2,
+      },
+    });
+    res.status(200).json(adjacentSection);
+  } catch (error) {
+    console.error("Error inserting adjacent sections:", error);
+    res.status(500).send("Failed to define adjacent sections.");
   }
 });
 
@@ -198,6 +227,8 @@ app.get("/edge", async (req: Request, res: Response) => {
     res.status(500).send("An error occurred while fetching the edge: " + error);
   }
 });
+
+// Pathfinding
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {

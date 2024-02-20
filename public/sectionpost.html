@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Define Adjacent Sections</title>
+  </head>
+  <body>
+    <div class="flex-container">
+      <h1>Define Adjacent Sections</h1>
+      <p>Select two sections to mark them as adjacent.</p>
+    </div>
+
+    <div class="flex-container">
+      <form id="sectionForm">
+        <label>Section One:</label><br />
+        <select name="section1" id="sectionDropdown1"></select
+        ><br />
+        <label>Section Two:</label><br />
+        <select name="section2" id="sectionDropdown2"></select
+        ><br />
+        <input type="submit" value="Submit" class="space-above" />
+      </form>
+    </div>
+
+    <script src="sectionpost.js"></script>
+  </body>
+</html>
+
+<style>
+  .flex-container {
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+  }
+  .large-line-height {
+    line-height: 150%;
+  }
+  .space-above {
+    margin-top: 5%;
+  }
+</style>

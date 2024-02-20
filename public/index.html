@@ -4,30 +4,65 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>gcuMaps API</title>
+    <style>
+      body {
+        font-family: "Circular", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: #ff6d00; /* Pumpkin */
+        background-color: #240046; /* Russian violet */
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      .flex-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 50px 20px;
+      }
+      h1,
+      h3 {
+        color: #ffffff; /* Pumpkin */
+      }
+      p {
+        color: #ffffff; /* Orange peel */
+      }
+      a {
+        color: white;
+        background-color: #9d4edd; /* Amethyst */
+        text-decoration: none;
+        padding: 12px 30px;
+        border-radius: 8px;
+        transition: background-color 0.3s, transform 0.2s;
+      }
+      a:hover {
+        background-color: #7b2cbf; /* French violet */
+        transform: translateY(-2px);
+      }
+      .button-container {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-top: 20px;
+      }
+    </style>
   </head>
   <body>
     <div class="flex-container">
       <h1>gcuMaps API</h1>
       <p>
-        Here you will be servered data related to the nodes and sections of the
-        GCU campus.
+        Welcome to the API service for GCU campus maps. Access nodes, sections,
+        and edges information with ease.
       </p>
-      <h3>Sections</h3>
-      <a href="/sections">Sections: Will return all sections.</a>
-      <h3>Nodes</h3>
-      <a href="/nodes">Nodes: Will return all nodes.</a>
-      <h3>Edges</h3>
-      <a href="/edges">Edges: Will return all edges.</a>
+      <div class="button-container">
+        <a href="/sections">View Sections</a>
+        <a href="/nodes">View Nodes</a>
+        <a href="/edges">View Edges</a>
+        <a href="/sectionpost">Post Sections</a>
+        <a href="/edgepost">Post Edges</a>
+      </div>
     </div>
   </body>
 </html>
-
-<style>
-  .flex-container {
-    display: flex;
-    text-align: center;
-    justify-content: center;
-    flex-direction: column;
-    align-items: center;
-  }
-</style>
