@@ -65,7 +65,7 @@ document.getElementById("sectionForm").addEventListener("submit", (e) => {
   const section2 = formData.get("section2");
 
   if (section1 === section2) {
-    alert("Sections must be different.");
+    alert("Sections must be different AJHFLAKDJHFLSKDJ.");
     return;
   }
 
