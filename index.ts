@@ -268,8 +268,6 @@ app.post("/navigate", async (req: Request, res: Response) => {
       goalNode.SectionID
     );
 
-    console.log("relevantSections: " + relevantSections);
-
     // Pull nodes and edges within the relevant sections
     const nodes = await prisma.nodes.findMany({
       where: { SectionID: { in: Array.from(relevantSections) } },
@@ -282,9 +280,6 @@ app.post("/navigate", async (req: Request, res: Response) => {
         ],
       },
     });
-
-    console.log("nodes in relevantSections: " + nodes);
-    console.log("edges in relevantSections: " + edges);
 
     const simplifiedNodes: Node[] = nodes.map((node) => ({
       id: node.NodeID,
