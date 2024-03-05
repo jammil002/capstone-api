@@ -1,3 +1,6 @@
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
+
 interface Node {
   id: number;
   latitude: number;
@@ -38,7 +41,7 @@ function haversineDistance(a: Node, b: Node): number {
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(aVal), Math.sqrt(1 - aVal));
-  return earthRadius * c; // Distance in miles
+  return earthRadius * c;
 }
 
 function aStarPathfinding(
@@ -63,7 +66,7 @@ function aStarPathfinding(
 
     if (currentNode === undefined) continue;
     if (currentNode.id === goalNode.id) {
-      //   return reconstructPath();
+      return reconstructPath(cameFrom, nodes, startId, goalId);
     }
     const currentEdges = edges.filter(
       (edge) => edge.startNodeId === currentNode.id
@@ -118,4 +121,53 @@ function reconstructPath(
   return path;
 }
 
-export { aStarPathfinding, haversineDistance, reconstructPath, Node, Edge };
+async function findRelevantSections(
+  startSectionId: number,
+  goalSectionId: number
+): Promise<Set<number>> {
+  const sectionsToVisit = [startSectionId]; // Start with the starting section
+  const visitedSections = new Set<number>(); // Keep track of visited sections
+
+  while (sectionsToVisit.length > 0) {
+    const currentSectionId = sectionsToVisit.shift(); // Get the current section to process
+
+    if (currentSectionId === undefined) continue; // Skip if undefined for some reason
+    if (visitedSections.has(currentSectionId)) continue; // Skip already visited sections
+
+    visitedSections.add(currentSectionId); // Mark this section as visited
+
+    // Fetch all adjacent sections from the database
+    const adjacentSections = await prisma.adjacentSections.findMany({
+      where: {
+        OR: [
+          { SectionID1: currentSectionId },
+          { SectionID2: currentSectionId },
+        ],
+      },
+    });
+
+    // Add the new adjacent sections to the list for visiting
+    for (const section of adjacentSections) {
+      const nextSectionId =
+        section.SectionID1 === currentSectionId
+          ? section.SectionID2
+          : section.SectionID1;
+      sectionsToVisit.push(nextSectionId);
+    }
+
+    if (visitedSections.has(goalSectionId)) {
+      break;
+    }
+  }
+
+  return visitedSections; // Return all visited (relevant) sections
+}
+
+export {
+  aStarPathfinding,
+  haversineDistance,
+  reconstructPath,
+  findRelevantSections,
+  Node,
+  Edge,
+};

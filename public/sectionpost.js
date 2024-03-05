@@ -40,10 +40,10 @@ async function pullSections() {
 
 async function defineAdjacentSections(section1, section2) {
   try {
-    const response = await fetch("/defineAdjacent", {
+    const response = await fetch("/navigate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ section1, section2 }),
+      body: JSON.stringify({ startId: startNode, goalId: endNode }),
     });
 
     if (!response.ok) {

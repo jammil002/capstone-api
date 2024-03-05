@@ -5,6 +5,14 @@ import { PrismaClient } from "@prisma/client";
 import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
 import path from "path";
+import {
+  aStarPathfinding,
+  haversineDistance,
+  reconstructPath,
+  findRelevantSections,
+  Node,
+  Edge,
+} from "./pathfinding";
 
 const prisma = new PrismaClient();
 dotenv.config();
@@ -234,13 +242,74 @@ app.get("/edge", async (req: Request, res: Response) => {
 });
 
 // Pathfinding
-app.get("/navigate", async (req: Request, res: Response) => {
+app.post("/navigate", async (req: Request, res: Response) => {
   const { startId, goalId } = req.body;
 
   if (typeof startId !== "number" || typeof goalId !== "number") {
     return res
       .status(400)
       .send("Start and goal nodes are required and must be numbers.");
+  }
+
+  try {
+    const startNode = await prisma.nodes.findUnique({
+      where: { NodeID: startId },
+    });
+    const goalNode = await prisma.nodes.findUnique({
+      where: { NodeID: goalId },
+    });
+
+    if (!startNode || !goalNode) {
+      return res.status(404).send("Start or goal node not found.");
+    }
+
+    const relevantSections = await findRelevantSections(
+      startNode.SectionID,
+      goalNode.SectionID
+    );
+
+    console.log("relevantSections: " + relevantSections);
+
+    // Pull nodes and edges within the relevant sections
+    const nodes = await prisma.nodes.findMany({
+      where: { SectionID: { in: Array.from(relevantSections) } },
+    });
+    const edges = await prisma.edges.findMany({
+      where: {
+        OR: [
+          { StartNodeID: { in: nodes.map((node) => node.NodeID) } },
+          { EndNodeID: { in: nodes.map((node) => node.NodeID) } },
+        ],
+      },
+    });
+
+    console.log("nodes in relevantSections: " + nodes);
+    console.log("edges in relevantSections: " + edges);
+
+    const simplifiedNodes: Node[] = nodes.map((node) => ({
+      id: node.NodeID,
+      latitude: parseFloat(node.Latitude.toString()),
+      longitude: parseFloat(node.Longitude.toString()),
+    }));
+
+    const simplifiedEdges: Edge[] = edges.map((edge) => ({
+      startNodeId: edge.StartNodeID,
+      endNodeId: edge.EndNodeID,
+      distance: parseFloat(edge.Distance.toString()),
+    }));
+
+    // Execute A* Pathfinding
+    const path = aStarPathfinding(
+      simplifiedNodes,
+      simplifiedEdges,
+      startId,
+      goalId
+    );
+
+    res.json({ path: path });
+  } catch (error) {
+    console.error("Error during navigation:", error);
+    res.status(500).send("Internal server error.");
   }
 });
 

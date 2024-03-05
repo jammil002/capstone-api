@@ -28,17 +28,15 @@ async function pullNodes() {
     }
   }
 
-  console.log(nodesData);
-
   // Populate the dropdowns with nodes data
   nodesData.forEach((node) => {
     let option1 = document.createElement("option");
     let option2 = document.createElement("option");
 
-    option1.value = node.id; // Adjust according to your data attributes
+    option1.value = node.NodeID; // Adjust according to your data attributes
     option1.text = `Name: ${node.Name} | ID: ${node.NodeID}`; // Customize as needed
 
-    option2.value = node.id;
+    option2.value = node.NodeID;
     option2.text = `Name: ${node.Name} | ID: ${node.NodeID}`;
 
     nodedropdown1.appendChild(option1);
@@ -46,32 +44,47 @@ async function pullNodes() {
   });
 }
 
-window.onload = pullNodes;
-
 async function findPath(startNode, endNode) {
+  if (!startNode || !endNode || isNaN(startNode) || isNaN(endNode)) {
+    alert("Please enter valid start and end node IDs.");
+    return;
+  }
+
+  const startId = Number(startNode);
+  const goalId = Number(endNode);
+
   try {
     const response = await fetch("/navigate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ startId: startNode, goalId: endNode }),
+      body: JSON.stringify({ startId, goalId }),
     });
 
     if (!response.ok) {
-      throw new Error("Failed to find path");
+      const message = await response.text();
+      throw new Error(message || "Failed to find path");
     } else {
       const path = await response.json();
-      alert(`Path found: ${JSON.stringify(path)}`);
+
+      if (path && Array.isArray(path.path)) {
+        alert(`Path found: ${path.path.map((node) => node.id).join(" -> ")}`);
+      } else {
+        alert("Path not found or invalid path structure");
+      }
     }
   } catch (error) {
     console.error("Error finding path:", error);
-    alert("An error occurred while finding the path.");
+    alert(`An error occurred while finding the path: ${error.message}`);
   }
 }
 
 document.getElementById("nodeform").addEventListener("submit", (e) => {
   e.preventDefault();
+
   const formData = new FormData(e.target);
   const startNode = formData.get("startNode");
   const endNode = formData.get("endNode");
   findPath(startNode, endNode);
 });
+
+window.onload = pullNodes;
