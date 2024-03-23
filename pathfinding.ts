@@ -5,6 +5,7 @@ interface Node {
   id: number;
   latitude: number;
   longitude: number;
+  isPOI: number;
 }
 
 interface Edge {
@@ -12,6 +13,7 @@ interface Edge {
   endNodeId: number;
   distance: number;
 }
+
 
 class PriorityQueue<T> {
   private qElements: Array<{ item: T; priority: number }> = [];
