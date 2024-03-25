@@ -45,13 +45,45 @@ async function pullNodes() {
 }
 
 async function findPath(startNode, endNode) {
-  if (!startNode || !endNode || isNaN(startNode) || isNaN(endNode)) {
-    alert("Please enter valid start and end node IDs.");
+  let startId;
+
+  if (startNode === "closestPOI") {
+    // Request the user's current location
+    navigator.geolocation.getCurrentPosition(async (position) => {
+      const { latitude, longitude } = position.coords;
+
+      try {
+        // Fetch the closest POI using the user's current location
+        const response = await fetch(`/closestPOI?latitude=${latitude}&longitude=${longitude}`);
+        if (!response.ok) throw new Error('Failed to fetch closest POI');
+        
+        const closestPOI = await response.json();
+        startId = closestPOI.id;
+
+        // Continue with path finding using the closest POI as the start node
+        proceedWithFindingPath(startId, endNode);
+      } catch (error) {
+        alert(`An error occurred while fetching the closest POI: ${error.message}`);
+        console.error("Error fetching closest POI:", error);
+      }
+    }, (error) => {
+      alert("Unable to retrieve your location");
+      console.error("Geolocation error:", error);
+    });
+  } else {
+    // If a specific start node is chosen, not the closest POI
+    console.error("Invalid start node:", startNode);
+    proceedWithFindingPath(Number(startNode), endNode);
+  }
+}
+
+async function proceedWithFindingPath(startId, endNode) {
+  const goalId = Number(endNode);
+  
+  if (isNaN(startId) || isNaN(goalId)) {
+    alert("Please enter valid node IDs.");
     return;
   }
-
-  const startId = Number(startNode);
-  const goalId = Number(endNode);
 
   try {
     const response = await fetch("/navigate", {
@@ -63,20 +95,20 @@ async function findPath(startNode, endNode) {
     if (!response.ok) {
       const message = await response.text();
       throw new Error(message || "Failed to find path");
-    } else {
-      const path = await response.json();
+    }
 
-      if (path && Array.isArray(path.path)) {
-        alert(`Path found: ${path.path.map((node) => node.id).join(" -> ")}`);
-      } else {
-        alert("Path not found or invalid path structure");
-      }
+    const path = await response.json();
+    if (path && Array.isArray(path.path)) {
+      alert(`Path found: ${path.path.map((node) => node.id).join(" -> ")}`);
+    } else {
+      alert("Path not found or invalid path structure");
     }
   } catch (error) {
     console.error("Error finding path:", error);
     alert(`An error occurred while finding the path: ${error.message}`);
   }
 }
+
 
 document.getElementById("nodeform").addEventListener("submit", (e) => {
   e.preventDefault();

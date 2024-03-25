@@ -241,6 +241,74 @@ app.get("/edge", async (req: Request, res: Response) => {
   }
 });
 
+// Get all POIs
+app.get("/POIs", async (req: Request, res: Response) => {
+  const pois = await prisma.nodes.findMany({
+    where: {
+      isPOI: 1,
+    },
+  });
+
+  // Transform the POIs to match the Node interface
+  const transformedPOIs: Node[] = pois.map(poi => ({
+    id: poi.NodeID,
+    latitude: parseFloat(poi.Latitude.toString()),
+    longitude: parseFloat(poi.Longitude.toString()),
+    isPOI: poi.isPOI
+  }));
+
+  res.json(transformedPOIs);
+});
+
+// Get closest POI to provided latitude and longitude
+app.get("/closestPOI", async (req: Request, res: Response) => {
+  const { latitude, longitude } = req.query;
+  if (!latitude || !longitude) {
+    return res.status(400).send("Latitude and longitude are required");
+  }
+
+  try {
+    const POIs = await prisma.nodes.findMany({
+      where: {
+        isPOI: 1,
+      },
+    });
+
+    // Transform the POIs to match the Node interface, including the isPOI property
+    const transformedPOIs: Node[] = POIs.map(poi => ({
+      id: poi.NodeID,
+      latitude: parseFloat(poi.Latitude.toString()),
+      longitude: parseFloat(poi.Longitude.toString()),
+      isPOI: poi.isPOI,
+    }));
+
+    let closestPOI: Node | null = null;
+    let shortestDistance = Infinity;
+
+    transformedPOIs.forEach((poi) => {
+      const distance = getDistance(
+        parseFloat(latitude as string),
+        parseFloat(longitude as string),
+        poi.latitude,
+        poi.longitude
+      );
+
+      if (distance < shortestDistance) {
+        shortestDistance = distance;
+        closestPOI = poi;
+      }
+    });
+
+    if (closestPOI) {
+      res.json(closestPOI);
+    } else {
+      res.status(404).send("No POIs found.");
+    }
+  } catch (error) {
+    res.status(500).send("An error occurred when finding POI: " + error.message);
+  }
+});
+
 // Pathfinding
 app.post("/navigate", async (req: Request, res: Response) => {
   const { startId, goalId } = req.body;
@@ -281,11 +349,14 @@ app.post("/navigate", async (req: Request, res: Response) => {
       },
     });
 
-    const simplifiedNodes: Node[] = nodes.map((node) => ({
+
+    const simplifiedNodes: Node[] = nodes.map(node => ({
       id: node.NodeID,
       latitude: parseFloat(node.Latitude.toString()),
       longitude: parseFloat(node.Longitude.toString()),
+      isPOI: node.isPOI,
     }));
+
 
     const simplifiedEdges: Edge[] = edges.map((edge) => ({
       startNodeId: edge.StartNodeID,
