@@ -211,7 +211,7 @@ app.get("/node", async (req: Request, res: Response) => {
 
 app.get("/POI", async (req: Request, res: Response) => {
   try {
-    const POIs = prisma.nodes.findMany({
+    const POIs = await prisma.nodes.findMany({
       where: {
         isPOI: 1,
       },
