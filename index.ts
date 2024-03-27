@@ -1,6 +1,6 @@
 import * as dotenv from "dotenv";
 import CORS from "cors";
-import express, { Request, Response } from "express";
+import express, { Request, Response, response } from "express";
 import { PrismaClient } from "@prisma/client";
 import helmet from "helmet";
 import { rateLimit } from "express-rate-limit";
@@ -13,6 +13,7 @@ import {
   Node,
   Edge,
 } from "./pathfinding";
+import { error } from "console";
 
 const prisma = new PrismaClient();
 dotenv.config();
@@ -208,6 +209,83 @@ app.get("/node", async (req: Request, res: Response) => {
   }
 });
 
+app.get("/POI", async (req: Request, res: Response) => {
+  try {
+    const POIs = prisma.nodes.findMany({
+      where: {
+        isPOI: 1,
+      },
+    });
+
+    if (POIs) {
+      res.json(POIs);
+    } else {
+      console.log("POIs not found");
+      res.status(404).send("POIs not found");
+    }
+  } catch {
+    res.status(500).send("An error occured while fetching the POIs: " + error);
+  }
+});
+
+app.get("/closestNode", async (req: Request, res: Response) => {
+  const { userlongitude, userlatitude } = req.body;
+
+  if (!userlongitude && userlatitude) {
+    return res.status(400).send("Please include longitude and latitude.");
+  }
+
+  const longitude = parseFloat(userlongitude);
+  const latitude = parseFloat(userlatitude);
+
+  const deltaLatitude = 0.25 / 69;
+  const deltaLongitude = 0.25 / 69;
+
+  const lowerBoundLong = longitude - deltaLongitude;
+  const lowerBoundLat = latitude - deltaLatitude;
+
+  const upperBoundLong = longitude + deltaLongitude;
+  const upperBoundLat = latitude + deltaLatitude;
+
+  try {
+    const nodes = await prisma.nodes.findMany({
+      where: {
+        AND: [
+          { Longitude: { gte: lowerBoundLong } },
+          { Longitude: { lte: upperBoundLong } },
+          { Latitude: { gte: lowerBoundLat } },
+          { Latitude: { lte: upperBoundLat } },
+        ],
+      },
+    });
+
+    let closestNode = null;
+    let smallestDistance = Infinity;
+
+    nodes.forEach((node) => {
+      const distance = getDistance(
+        node.Longitude,
+        node.Latitude,
+        longitude,
+        latitude
+      );
+
+      if (distance < smallestDistance) {
+        smallestDistance = distance;
+        closestNode = node;
+      }
+    });
+
+    if (closestNode) {
+      res.json(closestNode);
+    } else {
+      res.status(404).send("No nodes found within the specified bounds.");
+    }
+  } catch (e) {
+    res.status(500).send("Error when finding the closet node to the location.");
+  }
+});
+
 // Get all edges
 app.get("/edges", async (req: Request, res: Response) => {
   const edges = await prisma.edges.findMany();
@@ -238,74 +316,6 @@ app.get("/edge", async (req: Request, res: Response) => {
     }
   } catch (error) {
     res.status(500).send("An error occurred while fetching the edge: " + error);
-  }
-});
-
-// Get all POIs
-app.get("/POIs", async (req: Request, res: Response) => {
-  const pois = await prisma.nodes.findMany({
-    where: {
-      isPOI: 1,
-    },
-  });
-
-  // Transform the POIs to match the Node interface
-  const transformedPOIs: Node[] = pois.map(poi => ({
-    id: poi.NodeID,
-    latitude: parseFloat(poi.Latitude.toString()),
-    longitude: parseFloat(poi.Longitude.toString()),
-    isPOI: poi.isPOI
-  }));
-
-  res.json(transformedPOIs);
-});
-
-// Get closest POI to provided latitude and longitude
-app.get("/closestPOI", async (req: Request, res: Response) => {
-  const { latitude, longitude } = req.query;
-  if (!latitude || !longitude) {
-    return res.status(400).send("Latitude and longitude are required");
-  }
-
-  try {
-    const POIs = await prisma.nodes.findMany({
-      where: {
-        isPOI: 1,
-      },
-    });
-
-    // Transform the POIs to match the Node interface, including the isPOI property
-    const transformedPOIs: Node[] = POIs.map(poi => ({
-      id: poi.NodeID,
-      latitude: parseFloat(poi.Latitude.toString()),
-      longitude: parseFloat(poi.Longitude.toString()),
-      isPOI: poi.isPOI,
-    }));
-
-    let closestPOI: Node | null = null;
-    let shortestDistance = Infinity;
-
-    transformedPOIs.forEach((poi) => {
-      const distance = getDistance(
-        parseFloat(latitude as string),
-        parseFloat(longitude as string),
-        poi.latitude,
-        poi.longitude
-      );
-
-      if (distance < shortestDistance) {
-        shortestDistance = distance;
-        closestPOI = poi;
-      }
-    });
-
-    if (closestPOI) {
-      res.json(closestPOI);
-    } else {
-      res.status(404).send("No POIs found.");
-    }
-  } catch (error) {
-    res.status(500).send("An error occurred when finding POI: " + error.message);
   }
 });
 
@@ -349,14 +359,12 @@ app.post("/navigate", async (req: Request, res: Response) => {
       },
     });
 
-
-    const simplifiedNodes: Node[] = nodes.map(node => ({
+    const simplifiedNodes: Node[] = nodes.map((node) => ({
       id: node.NodeID,
       latitude: parseFloat(node.Latitude.toString()),
       longitude: parseFloat(node.Longitude.toString()),
       isPOI: node.isPOI,
     }));
-
 
     const simplifiedEdges: Edge[] = edges.map((edge) => ({
       startNodeId: edge.StartNodeID,
