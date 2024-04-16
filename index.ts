@@ -228,8 +228,8 @@ app.get("/POI", async (req: Request, res: Response) => {
   }
 });
 
-app.get("/closestNode", async (req: Request, res: Response) => {
-  const { userlongitude, userlatitude } = req.body;
+app.post("/closestNode", async (req: Request, res: Response) => {
+  const { userlatitude, userlongitude } = req.body;
 
   if (!userlongitude && userlatitude) {
     return res.status(400).send("Please include longitude and latitude.");
@@ -261,6 +261,8 @@ app.get("/closestNode", async (req: Request, res: Response) => {
 
     let closestNode = null;
     let smallestDistance = Infinity;
+
+    console.log(nodes);
 
     nodes.forEach((node) => {
       const distance = getDistance(
