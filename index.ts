@@ -266,10 +266,10 @@ app.post("/closestNode", async (req: Request, res: Response) => {
 
     nodes.forEach((node) => {
       const distance = getDistance(
-        node.Longitude,
         node.Latitude,
-        longitude,
-        latitude
+        node.Longitude,
+        latitude,
+        longitude
       );
 
       if (distance < smallestDistance) {
@@ -348,6 +348,8 @@ app.post("/navigate", async (req: Request, res: Response) => {
       goalNode.SectionID
     );
 
+    console.log(relevantSections);
+
     // Pull nodes and edges within the relevant sections
     const nodes = await prisma.nodes.findMany({
       where: { SectionID: { in: Array.from(relevantSections) } },
@@ -373,6 +375,15 @@ app.post("/navigate", async (req: Request, res: Response) => {
       endNodeId: edge.EndNodeID,
       distance: parseFloat(edge.Distance.toString()),
     }));
+
+    console.log("Node");
+    simplifiedNodes.map((node) => {
+      console.log(node);
+    });
+    console.log("Edge");
+    simplifiedEdges.map((edge) => {
+      console.log(edge);
+    });
 
     // Execute A* Pathfinding
     const path = aStarPathfinding(

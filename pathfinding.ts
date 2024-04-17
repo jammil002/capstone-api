@@ -14,7 +14,6 @@ interface Edge {
   distance: number;
 }
 
-
 class PriorityQueue<T> {
   private qElements: Array<{ item: T; priority: number }> = [];
 
@@ -68,6 +67,7 @@ function aStarPathfinding(
 
     if (currentNode === undefined) continue;
     if (currentNode.id === goalNode.id) {
+      console.log("aStarPathfinding found");
       return reconstructPath(cameFrom, nodes, startId, goalId);
     }
     const currentEdges = edges.filter(
@@ -92,6 +92,7 @@ function aStarPathfinding(
     }
   }
 
+  console.log(cameFrom);
   return null;
 }
 
@@ -127,42 +128,45 @@ async function findRelevantSections(
   startSectionId: number,
   goalSectionId: number
 ): Promise<Set<number>> {
-  const sectionsToVisit = [startSectionId]; // Start with the starting section
-  const visitedSections = new Set<number>(); // Keep track of visited sections
+  const queue: Array<{ sectionId: number; path: number[] }> = [
+    { sectionId: startSectionId, path: [startSectionId] },
+  ];
+  const visitedSections = new Set<number>();
 
-  while (sectionsToVisit.length > 0) {
-    const currentSectionId = sectionsToVisit.shift(); // Get the current section to process
+  while (queue.length > 0) {
+    const { sectionId, path } = queue.shift()!; // Safely assumed as non-null because of the while check
 
-    if (currentSectionId === undefined) continue; // Skip if undefined for some reason
-    if (visitedSections.has(currentSectionId)) continue; // Skip already visited sections
+    if (visitedSections.has(sectionId)) continue;
+    visitedSections.add(sectionId);
 
-    visitedSections.add(currentSectionId); // Mark this section as visited
+    // Stop if we reach the goal
+    if (sectionId === goalSectionId) {
+      return new Set(path); // Return the path that led to the goal
+    }
 
-    // Fetch all adjacent sections from the database
+    // Fetch adjacent sections
     const adjacentSections = await prisma.adjacentSections.findMany({
       where: {
-        OR: [
-          { SectionID1: currentSectionId },
-          { SectionID2: currentSectionId },
-        ],
+        OR: [{ SectionID1: sectionId }, { SectionID2: sectionId }],
       },
     });
 
-    // Add the new adjacent sections to the list for visiting
+    // Enqueue adjacent sections
     for (const section of adjacentSections) {
       const nextSectionId =
-        section.SectionID1 === currentSectionId
+        section.SectionID1 === sectionId
           ? section.SectionID2
           : section.SectionID1;
-      sectionsToVisit.push(nextSectionId);
-    }
-
-    if (visitedSections.has(goalSectionId)) {
-      break;
+      if (!visitedSections.has(nextSectionId)) {
+        queue.push({
+          sectionId: nextSectionId,
+          path: [...path, nextSectionId],
+        }); // Push new section with updated path
+      }
     }
   }
 
-  return visitedSections; // Return all visited (relevant) sections
+  return visitedSections; // In case the goalSectionId is not found
 }
 
 export {
